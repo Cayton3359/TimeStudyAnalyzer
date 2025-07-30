@@ -2,6 +2,21 @@
 
 A computer vision-based system for analyzing time study videos using colored cards to track different work states.
 
+## 📥 Download Ready-to-Use Version
+
+**🚀 [Download Latest Release](https://github.com/cayton3359/TimeStudyAnalyzer/releases/latest)**
+
+Get the complete package with:
+- ✅ **TimeStudyAnalyzer-GUI.exe** - Easy graphical interface
+- ✅ **TimeStudyAnalyzer-CLI.exe** - Command line version  
+- ✅ **Que Cards.pptx** - Printable colored cards
+- ✅ **User-Guide.md** - Step-by-step instructions
+- ✅ **All templates and documentation**
+
+**Requirements**: Windows 10/11 + [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki)
+
+---
+
 ## Features
 
 - **Multi-resolution support**: 360p, 720p, and 1080p video processing
