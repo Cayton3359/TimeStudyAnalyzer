@@ -1,0 +1,84 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install system dependencies
+      run: |
+        # Install Tesseract OCR
+        choco install tesseract
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        # Install your project dependencies
+        pip install opencv-python
+        pip install PyQt5
+        pip install pandas
+        pip install openpyxl
+        pip install pytesseract
+        pip install numpy
+        
+    - name: Build CLI Analyzer EXE
+      run: |
+        pyinstaller --onefile --name "TimeStudyAnalyzer-CLI" --distpath dist/cli src/analyzer/analyze_cards.py
+        
+    - name: Build GUI Application EXE  
+      run: |
+        pyinstaller --onefile --windowed --name "TimeStudyAnalyzer-GUI" --distpath dist/gui main.py
+        
+    - name: Create release package
+      run: |
+        mkdir release
+        copy dist\cli\TimeStudyAnalyzer-CLI.exe release\
+        copy dist\gui\TimeStudyAnalyzer-GUI.exe release\
+        copy README.md release\
+        
+    - name: Upload CLI Executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: TimeStudyAnalyzer-CLI
+        path: dist/cli/TimeStudyAnalyzer-CLI.exe
+        
+    - name: Upload GUI Executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: TimeStudyAnalyzer-GUI
+        path: dist/gui/TimeStudyAnalyzer-GUI.exe
+        
+    - name: Upload Complete Release Package
+      uses: actions/upload-artifact@v3
+      with:
+        name: TimeStudyAnalyzer-Complete
+        path: release/
+        
+    # Auto-create release on version tags
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/cli/TimeStudyAnalyzer-CLI.exe
+          dist/gui/TimeStudyAnalyzer-GUI.exe
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

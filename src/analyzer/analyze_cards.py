@@ -10,6 +10,9 @@ from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from openpyxl.styles import Font, Border, Side
 
+# Version information
+__version__ = "v1.0.0"
+
 # ─── VIDEO RESOLUTION TOGGLE ────────────────────────────────────────────────────
 # Set resolution: "360p", "720p", or "1080p"
 RESOLUTION_SETTING = "360p"

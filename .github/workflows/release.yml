@@ -1,0 +1,105 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  create-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install system dependencies
+      run: |
+        choco install tesseract
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Update version in code
+      run: |
+        # Update version in analyze_cards.py
+        (Get-Content src/analyzer/analyze_cards.py) -replace '__version__ = .*', "__version__ = '${{ github.event.inputs.version }}'" | Set-Content src/analyzer/analyze_cards.py
+        
+    - name: Build executables with version info
+      run: |
+        # Build CLI version
+        pyinstaller --onefile `
+          --name "TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}" `
+          --distpath dist/cli `
+          --add-data "templates;templates" `
+          src/analyzer/analyze_cards.py
+          
+        # Build GUI version  
+        pyinstaller --onefile --windowed `
+          --name "TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}" `
+          --distpath dist/gui `
+          --add-data "templates;templates" `
+          main.py
+          
+    - name: Create release package
+      run: |
+        mkdir "TimeStudyAnalyzer-${{ github.event.inputs.version }}"
+        copy "dist\cli\TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy "dist\gui\TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy README.md "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy requirements.txt "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        
+        # Create ZIP file
+        Compress-Archive -Path "TimeStudyAnalyzer-${{ github.event.inputs.version }}" -DestinationPath "TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip"
+        
+    - name: Create Git tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag ${{ github.event.inputs.version }}
+        git push origin ${{ github.event.inputs.version }}
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: "Time Study Analyzer ${{ github.event.inputs.version }}"
+        body: |
+          ## Time Study Analyzer ${{ github.event.inputs.version }}
+          
+          ### Downloads
+          - **CLI Version**: `TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe` - Command line interface
+          - **GUI Version**: `TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe` - Graphical user interface
+          - **Complete Package**: `TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip` - Both versions with documentation
+          
+          ### Features
+          - Multi-resolution video processing (360p, 720p, 1080p)
+          - Real-time card detection for START, STOP, DOWN, LOOK, and MEETING cards
+          - Optimized CPU usage (60% of available cores)
+          - Excel reporting with comprehensive timing analysis
+          - Multi-threaded processing for improved performance
+          
+          ### Requirements
+          - Windows 10/11
+          - Tesseract OCR (for text recognition)
+          
+          Built automatically from commit: ${{ github.sha }}
+        files: |
+          dist/cli/TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe
+          dist/gui/TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe
+          TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
