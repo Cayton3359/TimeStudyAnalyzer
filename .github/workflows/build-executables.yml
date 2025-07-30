@@ -29,14 +29,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install -r requirements.txt
         pip install pyinstaller
-        # Install your project dependencies
-        pip install opencv-python
-        pip install PyQt5
-        pip install pandas
-        pip install openpyxl
-        pip install pytesseract
-        pip install numpy
         
     - name: Build Complete Package
       run: |
@@ -66,13 +60,13 @@ jobs:
     - name: Upload Complete Package
       uses: actions/upload-artifact@v4
       with:
-        name: TimeStudyAnalyzer-Complete-Package
+        name: Complete-Package
         path: TimeStudyAnalyzer-Complete-Package/
         
     - name: Upload Complete Package ZIP
       uses: actions/upload-artifact@v4
       with:
-        name: TimeStudyAnalyzer-Complete-ZIP
+        name: Complete-Package-ZIP
         path: TimeStudyAnalyzer-Complete-Package.zip
         
     # Auto-create release on version tags
@@ -81,8 +75,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/cli/TimeStudyAnalyzer-CLI.exe
-          dist/gui/TimeStudyAnalyzer-GUI.exe
+          TimeStudyAnalyzer-Complete-Package.zip
+          dist/TimeStudyAnalyzer-Complete/TimeStudyAnalyzer-GUI.exe
+          dist/TimeStudyAnalyzer-Complete/TimeStudyAnalyzer-CLI.exe
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
