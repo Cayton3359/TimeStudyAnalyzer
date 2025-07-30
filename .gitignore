@@ -123,6 +123,14 @@ output/*.csv
 record/
 D:/record/
 
+# Build artifacts
+TimeStudyAnalyzer-Release/
+TimeStudyAnalyzer-Complete-Package/
+*.zip
+
+# Keep the PowerPoint file - users need this!
+# Que Cards.pptx - KEEP THIS FILE
+
 # Temporary files
 *.tmp
 *.temp

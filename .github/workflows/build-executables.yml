@@ -38,38 +38,42 @@ jobs:
         pip install pytesseract
         pip install numpy
         
-    - name: Build CLI Analyzer EXE
+    - name: Build Complete Package
       run: |
-        pyinstaller --onefile --name "TimeStudyAnalyzer-CLI" --distpath dist/cli src/analyzer/analyze_cards.py
+        # Build using the comprehensive spec file
+        pyinstaller TimeStudyAnalyzer.spec
         
-    - name: Build GUI Application EXE  
+    - name: Create distribution package
       run: |
-        pyinstaller --onefile --windowed --name "TimeStudyAnalyzer-GUI" --distpath dist/gui main.py
+        mkdir TimeStudyAnalyzer-Complete-Package
         
-    - name: Create release package
-      run: |
-        mkdir release
-        copy dist\cli\TimeStudyAnalyzer-CLI.exe release\
-        copy dist\gui\TimeStudyAnalyzer-GUI.exe release\
-        copy README.md release\
+        # Copy executables
+        copy "dist\TimeStudyAnalyzer-Complete\TimeStudyAnalyzer-GUI.exe" "TimeStudyAnalyzer-Complete-Package\"
+        copy "dist\TimeStudyAnalyzer-Complete\TimeStudyAnalyzer-CLI.exe" "TimeStudyAnalyzer-Complete-Package\"
         
-    - name: Upload CLI Executable
+        # Copy user resources
+        copy "Que Cards.pptx" "TimeStudyAnalyzer-Complete-Package\"
+        copy "User-Guide.md" "TimeStudyAnalyzer-Complete-Package\"
+        copy "README.md" "TimeStudyAnalyzer-Complete-Package\"
+        copy "requirements.txt" "TimeStudyAnalyzer-Complete-Package\"
+        
+        # Copy templates folder
+        xcopy "templates" "TimeStudyAnalyzer-Complete-Package\templates\" /E /I
+        
+        # Create ZIP for easy distribution
+        Compress-Archive -Path "TimeStudyAnalyzer-Complete-Package\*" -DestinationPath "TimeStudyAnalyzer-Complete-Package.zip"
+        
+    - name: Upload Complete Package
       uses: actions/upload-artifact@v3
       with:
-        name: TimeStudyAnalyzer-CLI
-        path: dist/cli/TimeStudyAnalyzer-CLI.exe
+        name: TimeStudyAnalyzer-Complete-Package
+        path: TimeStudyAnalyzer-Complete-Package/
         
-    - name: Upload GUI Executable
+    - name: Upload Complete Package ZIP
       uses: actions/upload-artifact@v3
       with:
-        name: TimeStudyAnalyzer-GUI
-        path: dist/gui/TimeStudyAnalyzer-GUI.exe
-        
-    - name: Upload Complete Release Package
-      uses: actions/upload-artifact@v3
-      with:
-        name: TimeStudyAnalyzer-Complete
-        path: release/
+        name: TimeStudyAnalyzer-Complete-ZIP
+        path: TimeStudyAnalyzer-Complete-Package.zip
         
     # Auto-create release on version tags
     - name: Create Release

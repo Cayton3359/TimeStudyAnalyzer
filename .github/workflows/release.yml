@@ -36,32 +36,39 @@ jobs:
         # Update version in analyze_cards.py
         (Get-Content src/analyzer/analyze_cards.py) -replace '__version__ = .*', "__version__ = '${{ github.event.inputs.version }}'" | Set-Content src/analyzer/analyze_cards.py
         
-    - name: Build executables with version info
+    - name: Build complete package with version info
       run: |
-        # Build CLI version
-        pyinstaller --onefile `
-          --name "TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}" `
-          --distpath dist/cli `
-          --add-data "templates;templates" `
-          src/analyzer/analyze_cards.py
-          
-        # Build GUI version  
-        pyinstaller --onefile --windowed `
-          --name "TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}" `
-          --distpath dist/gui `
-          --add-data "templates;templates" `
-          main.py
-          
-    - name: Create release package
+        # Build using comprehensive spec file
+        pyinstaller TimeStudyAnalyzer.spec
+        
+    - name: Create versioned release package
       run: |
+        # Create main release folder
         mkdir "TimeStudyAnalyzer-${{ github.event.inputs.version }}"
-        copy "dist\cli\TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
-        copy "dist\gui\TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
-        copy README.md "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
-        copy requirements.txt "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        
+        # Copy executables with version names
+        copy "dist\TimeStudyAnalyzer-Complete\TimeStudyAnalyzer-GUI.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe"
+        copy "dist\TimeStudyAnalyzer-Complete\TimeStudyAnalyzer-CLI.exe" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe"
+        
+        # Copy user resources
+        copy "Que Cards.pptx" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy "User-Guide.md" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy "README.md" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        copy "requirements.txt" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\"
+        
+        # Copy templates folder
+        xcopy "templates" "TimeStudyAnalyzer-${{ github.event.inputs.version }}\templates\" /E /I
+        
+        # Create installation instructions
+        echo "# Quick Start Instructions" > "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
+        echo "" >> "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
+        echo "1. Print 'Que Cards.pptx' on a color printer" >> "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
+        echo "2. Install Tesseract OCR from: https://github.com/UB-Mannheim/tesseract/wiki" >> "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
+        echo "3. Run TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe" >> "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
+        echo "4. See User-Guide.md for detailed instructions" >> "TimeStudyAnalyzer-${{ github.event.inputs.version }}\INSTALL.md"
         
         # Create ZIP file
-        Compress-Archive -Path "TimeStudyAnalyzer-${{ github.event.inputs.version }}" -DestinationPath "TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip"
+        Compress-Archive -Path "TimeStudyAnalyzer-${{ github.event.inputs.version }}" -DestinationPath "TimeStudyAnalyzer-${{ github.event.inputs.version }}-Complete.zip"
         
     - name: Create Git tag
       run: |
@@ -79,9 +86,16 @@ jobs:
           ## Time Study Analyzer ${{ github.event.inputs.version }}
           
           ### Downloads
-          - **CLI Version**: `TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe` - Command line interface
-          - **GUI Version**: `TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe` - Graphical user interface
-          - **Complete Package**: `TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip` - Both versions with documentation
+          - **Complete Package**: `TimeStudyAnalyzer-${{ github.event.inputs.version }}-Complete.zip` - **RECOMMENDED** - Everything you need to get started
+          - **GUI Version**: `TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe` - Graphical user interface only
+          - **CLI Version**: `TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe` - Command line interface only
+          
+          ### What's in the Complete Package
+          - Both GUI and CLI executables
+          - **Que Cards.pptx** - Printable colored cards for time study
+          - **User-Guide.md** - Step-by-step setup instructions
+          - **Templates** - Pre-configured card detection files
+          - **Documentation** - Complete usage guide
           
           ### Features
           - Multi-resolution video processing (360p, 720p, 1080p)
@@ -96,9 +110,9 @@ jobs:
           
           Built automatically from commit: ${{ github.sha }}
         files: |
-          dist/cli/TimeStudyAnalyzer-CLI-${{ github.event.inputs.version }}.exe
-          dist/gui/TimeStudyAnalyzer-GUI-${{ github.event.inputs.version }}.exe
-          TimeStudyAnalyzer-${{ github.event.inputs.version }}.zip
+          TimeStudyAnalyzer-${{ github.event.inputs.version }}-Complete.zip
+          dist/TimeStudyAnalyzer-Complete/TimeStudyAnalyzer-GUI.exe
+          dist/TimeStudyAnalyzer-Complete/TimeStudyAnalyzer-CLI.exe
         draft: false
         prerelease: false
       env:
