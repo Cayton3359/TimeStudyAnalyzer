@@ -9,9 +9,40 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from openpyxl.styles import Font, Border, Side
+import requests
+import json
 
 # Version information
 __version__ = "v1.0.0"
+
+def check_for_updates():
+    """Check GitHub for newer versions and notify user"""
+    try:
+        # GitHub API endpoint for releases
+        url = "https://api.github.com/repos/cayton3359/TimeStudyAnalyzer/releases/latest"
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            latest_release = response.json()
+            latest_version = latest_release['tag_name']
+            
+            # Compare versions (simple string comparison for now)
+            if latest_version != __version__:
+                print(f"\n🔔 UPDATE AVAILABLE!")
+                print(f"   Current version: {__version__}")
+                print(f"   Latest version: {latest_version}")
+                print(f"   Download: {latest_release['html_url']}")
+                print(f"   Release notes: {latest_release['name']}")
+                print("-" * 50)
+                return True
+            else:
+                print(f"✅ You're running the latest version ({__version__})")
+                return False
+    except Exception as e:
+        # Silently fail - don't interrupt the main program
+        if VERBOSE:
+            print(f"⚠️ Could not check for updates: {e}")
+        return False
 
 # ─── VIDEO RESOLUTION TOGGLE ────────────────────────────────────────────────────
 # Set resolution: "360p", "720p", or "1080p"
@@ -610,6 +641,12 @@ def hamming_ratio(a, b):
 def main():
     # Start timer for overall processing
     start_time = time.time()
+    
+    print(f"🎯 Time Study Analyzer {__version__}")
+    print("=" * 40)
+    
+    # Check for updates (non-blocking)
+    check_for_updates()
     
     # Collect all clips to process
     clips_to_process = []

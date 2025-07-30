@@ -2,6 +2,9 @@ import sys
 import os
 import importlib.util
 import subprocess
+import requests
+import json
+from PyQt5.QtCore import QThread, pyqtSignal
 
 # Direct import method - no package needed
 analyzer_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
@@ -19,11 +22,40 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
                             QHBoxLayout, QRadioButton, QApplication)
 from PyQt5.QtCore import Qt
 
+class UpdateChecker(QThread):
+    """Background thread to check for updates"""
+    update_available = pyqtSignal(str, str, str)  # current_version, latest_version, download_url
+    
+    def __init__(self, current_version):
+        super().__init__()
+        self.current_version = current_version
+        
+    def run(self):
+        try:
+            url = "https://api.github.com/repos/cayton3359/TimeStudyAnalyzer/releases/latest"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                latest_release = response.json()
+                latest_version = latest_release['tag_name']
+                download_url = latest_release['html_url']
+                
+                if latest_version != self.current_version:
+                    self.update_available.emit(self.current_version, latest_version, download_url)
+        except Exception:
+            # Silently fail - don't interrupt the GUI
+            pass
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Time Study Analyzer")
+        self.setWindowTitle(f"Time Study Analyzer {analyze_cards.__version__}")
         self.setGeometry(100, 100, 600, 450)  # Smaller window size
+        
+        # Check for updates in background
+        self.update_checker = UpdateChecker(analyze_cards.__version__)
+        self.update_checker.update_available.connect(self.show_update_notification)
+        self.update_checker.start()
         
         # Create central widget and layout
         central_widget = QWidget()
@@ -426,3 +458,17 @@ class MainWindow(QMainWindow):
             self.advanced_button.setText("▼ Hide Advanced Options")
         else:
             self.advanced_button.setText("▶ Show Advanced Options")
+    
+    def show_update_notification(self, current_version, latest_version, download_url):
+        """Show update notification dialog"""
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Update Available")
+        msg.setText(f"A new version of Time Study Analyzer is available!")
+        msg.setInformativeText(f"Current version: {current_version}\nLatest version: {latest_version}\n\nWould you like to download the update?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setDefaultButton(QMessageBox.Yes)
+        
+        if msg.exec_() == QMessageBox.Yes:
+            import webbrowser
+            webbrowser.open(download_url)
