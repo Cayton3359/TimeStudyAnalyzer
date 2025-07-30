@@ -23,7 +23,10 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
+# *.spec - Don't exclude our main spec file
+
+# Keep our custom spec file
+# TimeStudyAnalyzer.spec - KEEP THIS FILE
 
 # Installer logs
 pip-log.txt
