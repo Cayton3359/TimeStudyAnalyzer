@@ -35,18 +35,30 @@ class TimeStudyInstaller:
     def setup_gui(self):
         """Create the installer GUI"""
         self.root = tk.Tk()
-        self.root.title("Time Study Analyzer - One Click Installer")
-        self.root.geometry("500x400")
+        self.root.title("Time Study Analyzer Installer")
+        self.root.geometry("600x500")
         self.root.resizable(False, False)
         
+        # Center the window on screen
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (600 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (500 // 2)
+        self.root.geometry(f"600x500+{x}+{y}")
+        
         # Main frame
-        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame = ttk.Frame(self.root, padding="25")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Configure grid weights for better scaling
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(5, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
         
         # Title
         title_label = ttk.Label(main_frame, text="Time Study Analyzer Installer", 
-                               font=("Arial", 16, "bold"))
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+                               font=("Arial", 18, "bold"))
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 25))
         
         # Description
         desc_text = """This installer will:
@@ -58,43 +70,51 @@ class TimeStudyInstaller:
 
 Installation directory: """ + self.install_dir
         
-        desc_label = ttk.Label(main_frame, text=desc_text, justify="left")
-        desc_label.grid(row=1, column=0, columnspan=2, pady=(0, 20), sticky="w")
+        desc_label = ttk.Label(main_frame, text=desc_text, justify="left", 
+                              font=("Arial", 10))
+        desc_label.grid(row=1, column=0, columnspan=2, pady=(0, 25), sticky="w")
         
         # Progress bar
         self.progress_var = tk.DoubleVar()
         progress_bar = ttk.Progressbar(main_frame, variable=self.progress_var, 
-                                     maximum=100, length=400)
-        progress_bar.grid(row=2, column=0, columnspan=2, pady=(0, 10), sticky="ew")
+                                     maximum=100, length=500)
+        progress_bar.grid(row=2, column=0, columnspan=2, pady=(0, 15), sticky="ew")
         
         # Status label
         self.status_var = tk.StringVar(value="Ready to install...")
-        status_label = ttk.Label(main_frame, textvariable=self.status_var)
-        status_label.grid(row=3, column=0, columnspan=2, pady=(0, 20))
+        status_label = ttk.Label(main_frame, textvariable=self.status_var, 
+                                font=("Arial", 10))
+        status_label.grid(row=3, column=0, columnspan=2, pady=(0, 25))
         
         # Buttons frame
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=4, column=0, columnspan=2)
+        button_frame.grid(row=4, column=0, columnspan=2, pady=(0, 20))
         
         # Install button
         self.install_btn = ttk.Button(button_frame, text="Install Time Study Analyzer", 
-                                     command=self.start_installation, style="Accent.TButton")
-        self.install_btn.pack(side="left", padx=(0, 10))
+                                     command=self.start_installation, 
+                                     style="Accent.TButton", width=25)
+        self.install_btn.pack(side="left", padx=(0, 15))
         
         # Exit button
-        exit_btn = ttk.Button(button_frame, text="Exit", command=self.root.quit)
+        exit_btn = ttk.Button(button_frame, text="Exit", command=self.root.quit, width=10)
         exit_btn.pack(side="left")
         
         # Log text area
-        log_frame = ttk.LabelFrame(main_frame, text="Installation Log", padding="10")
-        log_frame.grid(row=5, column=0, columnspan=2, pady=(20, 0), sticky="ew")
+        log_frame = ttk.LabelFrame(main_frame, text="Installation Log", padding="15")
+        log_frame.grid(row=5, column=0, columnspan=2, pady=(0, 0), sticky="nsew")
         
-        self.log_text = tk.Text(log_frame, height=8, width=60)
+        # Configure log frame grid
+        log_frame.grid_rowconfigure(0, weight=1)
+        log_frame.grid_columnconfigure(0, weight=1)
+        
+        self.log_text = tk.Text(log_frame, height=10, width=70, wrap=tk.WORD,
+                               font=("Consolas", 9))
         scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=scrollbar.set)
         
-        self.log_text.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
         
     def log_message(self, message):
         """Add message to log"""
@@ -192,29 +212,128 @@ Installation directory: """ + self.install_dir
         requirements_file = os.path.join(self.install_dir, "requirements.txt")
         if not os.path.exists(requirements_file):
             self.log_message("✗ requirements.txt not found")
+            self.log_message(f"Looking for file at: {requirements_file}")
             return False
             
         try:
+            # Show requirements content
+            with open(requirements_file, 'r') as f:
+                requirements_content = f.read()
+            self.log_message(f"Requirements file content:\n{requirements_content}")
+            
             # Upgrade pip first
             self.log_message("Upgrading pip...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], 
-                         check=True, capture_output=True)
+            pip_upgrade = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], 
+                                       capture_output=True, text=True)
+            if pip_upgrade.returncode != 0:
+                self.log_message(f"Warning: pip upgrade failed: {pip_upgrade.stderr}")
+            else:
+                self.log_message("✓ pip upgraded successfully")
             
-            # Install requirements
+            # Install requirements with better error handling
             self.log_message("Installing packages...")
-            result = subprocess.run([
-                sys.executable, "-m", "pip", "install", "-r", requirements_file
-            ], capture_output=True, text=True)
+            cmd = [sys.executable, "-m", "pip", "install", "-r", requirements_file, "--no-cache-dir", "--user"]
+            self.log_message(f"Running command: {' '.join(cmd)}")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.install_dir)
+            
+            # Log both stdout and stderr for debugging
+            if result.stdout:
+                self.log_message(f"pip stdout: {result.stdout}")
+            if result.stderr:
+                self.log_message(f"pip stderr: {result.stderr}")
             
             if result.returncode == 0:
                 self.log_message("✓ All dependencies installed successfully")
                 return True
             else:
-                self.log_message(f"✗ Installation failed: {result.stderr}")
-                return False
+                self.log_message(f"✗ Installation failed with return code: {result.returncode}")
+                
+                # Try alternative installation method
+                self.log_message("Trying alternative installation method...")
+                alt_cmd = [sys.executable, "-m", "pip", "install", "-r", requirements_file, "--force-reinstall"]
+                alt_result = subprocess.run(alt_cmd, capture_output=True, text=True, cwd=self.install_dir)
+                
+                if alt_result.returncode == 0:
+                    self.log_message("✓ Alternative installation successful")
+                    return True
+                else:
+                    self.log_message(f"✗ Alternative installation also failed: {alt_result.stderr}")
+                    return False
                 
         except Exception as e:
             self.log_message(f"✗ Error installing dependencies: {e}")
+            import traceback
+            self.log_message(f"Full error traceback: {traceback.format_exc()}")
+            return False
+            
+    def create_manual_installer(self):
+        """Create a batch file for manual dependency installation"""
+        try:
+            manual_installer_content = f'''@echo off
+title Time Study Analyzer - Manual Dependency Installer
+echo ================================================
+echo Time Study Analyzer - Manual Dependency Installer
+echo ================================================
+echo.
+echo This will install the required Python packages for Time Study Analyzer
+echo.
+
+cd /d "{self.install_dir}"
+
+echo Current directory: %CD%
+echo.
+
+echo Installing Python dependencies...
+echo.
+
+REM Upgrade pip first
+echo Upgrading pip...
+"{sys.executable}" -m pip install --upgrade pip
+
+echo.
+echo Installing required packages...
+"{sys.executable}" -m pip install -r requirements.txt --no-cache-dir
+
+echo.
+if %errorlevel% equ 0 (
+    echo ===============================
+    echo SUCCESS: All packages installed!
+    echo ===============================
+    echo.
+    echo You can now run Time Study Analyzer by:
+    echo 1. Using the desktop shortcut
+    echo 2. Running: python main.py
+) else (
+    echo ===============================
+    echo ERROR: Installation failed!
+    echo ===============================
+    echo.
+    echo Try running this script as Administrator
+    echo or install packages individually:
+    echo.
+    echo pip install opencv-python==4.8.1.78
+    echo pip install PyQt5==5.15.10
+    echo pip install numpy==1.24.4
+    echo pip install pandas==2.0.3
+    echo pip install openpyxl==3.1.2
+    echo pip install pytesseract==0.3.10
+    echo pip install pillow==10.0.1
+    echo pip install requests==2.31.0
+)
+
+echo.
+pause'''
+            
+            manual_installer_path = os.path.join(self.install_dir, "install_dependencies.bat")
+            with open(manual_installer_path, 'w') as f:
+                f.write(manual_installer_content)
+            
+            self.log_message(f"✓ Manual installer created: {manual_installer_path}")
+            return True
+            
+        except Exception as e:
+            self.log_message(f"✗ Error creating manual installer: {e}")
             return False
             
     def create_desktop_shortcut(self):
@@ -332,10 +451,29 @@ except Exception as e:
                 
             # Step 3: Install dependencies
             self.update_progress(50, "Installing dependencies...")
-            if not self.install_dependencies():
-                messagebox.showerror("Error", "Failed to install dependencies!")
-                return
+            deps_success = self.install_dependencies()
+            if not deps_success:
+                # Create manual installer for user
+                self.create_manual_installer()
                 
+                # Ask user if they want to continue despite dependency failure
+                continue_anyway = messagebox.askyesno(
+                    "Dependency Installation Failed", 
+                    "Some dependencies failed to install.\n\n"
+                    "This might be due to:\n"
+                    "• Network connectivity issues\n"
+                    "• Missing system libraries\n"
+                    "• Permission issues\n\n"
+                    "A manual installer has been created for you.\n\n"
+                    "Do you want to continue anyway?\n"
+                    "(You can install dependencies manually later)"
+                )
+                if not continue_anyway:
+                    self.log_message("Installation cancelled by user")
+                    return
+                else:
+                    self.log_message("Continuing installation despite dependency issues...")
+            
             # Step 4: Create shortcut
             self.update_progress(75, "Creating desktop shortcut...")
             self.create_desktop_shortcut()
@@ -348,15 +486,34 @@ except Exception as e:
             # Step 6: Complete
             self.update_progress(100, "Installation complete!")
             
+            # Show appropriate completion message
+            if deps_success:
+                completion_msg = "Installation completed successfully!\n\nWould you like to launch Time Study Analyzer now?"
+            else:
+                completion_msg = """Installation completed with warnings!
+
+Dependencies may need manual installation. To complete setup:
+
+1. Open Command Prompt as Administrator
+2. Navigate to: """ + self.install_dir + """
+3. Run: pip install -r requirements.txt
+
+Would you like to try launching Time Study Analyzer now?"""
+            
             # Ask if user wants to launch now
-            if messagebox.askyesno("Installation Complete", 
-                                 "Installation completed successfully!\n\n"
-                                 "Would you like to launch Time Study Analyzer now?"):
+            if messagebox.askyesno("Installation Complete", completion_msg):
                 self.launch_application()
                 
-            messagebox.showinfo("Success", 
-                              f"Time Study Analyzer has been installed to:\n{self.install_dir}\n\n"
-                              "You can launch it using the desktop shortcut or by running main.py")
+            success_msg = f"Time Study Analyzer has been installed to:\n{self.install_dir}\n\n"
+            if deps_success:
+                success_msg += "You can launch it using the desktop shortcut or by running main.py"
+            else:
+                success_msg += "Please install dependencies manually before first use:\n"
+                success_msg += "1. Open Command Prompt as Administrator\n"
+                success_msg += f"2. cd \"{self.install_dir}\"\n"
+                success_msg += "3. pip install -r requirements.txt"
+                
+            messagebox.showinfo("Installation Summary", success_msg)
                               
         except Exception as e:
             self.log_message(f"✗ Installation failed: {e}")
