@@ -17,10 +17,14 @@ MainWindow = main_window.MainWindow
 from PyQt5.QtWidgets import QApplication
 
 def main():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    try:
+        app = QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec_())
+    except KeyboardInterrupt:
+        # Exit cleanly if the terminal sends Ctrl+C / SIGINT.
+        return
 
 if __name__ == "__main__":
     main()

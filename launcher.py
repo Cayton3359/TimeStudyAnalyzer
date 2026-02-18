@@ -17,7 +17,7 @@ def extract_bundled_files():
     # Get the directory where this EXE is running from
     if getattr(sys, 'frozen', False):
         # Running as compiled EXE
-        bundle_dir = sys._MEIPASS
+        bundle_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     else:
         # Running as script
         bundle_dir = os.path.dirname(os.path.abspath(__file__))
@@ -155,7 +155,11 @@ def main():
         else:
             # Running as script - use the regular import
             import main
-            main.main()
+            try:
+                main.main()
+            except KeyboardInterrupt:
+                # Exit cleanly if the terminal sends Ctrl+C / SIGINT.
+                return
             
     except Exception as e:
         import tkinter as tk

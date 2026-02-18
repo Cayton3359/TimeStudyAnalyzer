@@ -175,6 +175,8 @@ for lbl,(hc,hrange) in HUE_INFO.items():
     if not os.path.isfile(path):
         raise FileNotFoundError(f"Missing template: {path}")
     gray = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if gray is None:
+        raise FileNotFoundError(f"Failed to load template: {path}")
     gray = cv2.resize(gray, (template_w, template_h), interpolation=cv2.INTER_AREA)
     templates[lbl]      = gray
     edge_templates[lbl] = cv2.Canny(gray, 50, 150)
@@ -595,7 +597,8 @@ def add_time_borders(worksheet, df, columns):
 
 # ─── PRECOMPUTE FUNCTIONS AND COLOR RANGES ─────────────────────────────────────
 # Function references to avoid repeated lookups
-inRange = cv2.inRange
+def inRange(hsv, lo, hi):
+    return cv2.inRange(hsv, np.array(lo, dtype=np.uint8), np.array(hi, dtype=np.uint8))
 bitwise_or = cv2.bitwise_or
 bitwise_and = cv2.bitwise_and
 bitwise_not = cv2.bitwise_not
@@ -621,6 +624,24 @@ COLOR_RANGES = {
     "LOOK": [(88,150,150), (112,255,255)],
     "MEETING": [(135,80,80), (165,255,255)]
 }
+
+def guess_label_from_bbox(hsv, x, y, w, h):
+    """Guess closest label by average hue inside a bounding box."""
+    roi = hsv[y:y + h, x:x + w]
+    if roi.size == 0:
+        return "START"
+
+    avg_hue = float(np.mean(roi[:, :, 0]))
+    best_label = "START"
+    best_diff = float("inf")
+    for lbl, (hc, hrange) in HUE_INFO.items():
+        diff = abs(avg_hue - hc)
+        if lbl == "STOP":
+            diff = min(diff, 180 - diff)
+        if diff < best_diff:
+            best_diff = diff
+            best_label = lbl
+    return best_label
 
 def hamming_ratio(a, b):
     """Fast string similarity for card text comparison"""
@@ -703,11 +724,12 @@ def main():
     if all_detections:
         # Process raw data
         df = pd.DataFrame(all_detections)
-        df["Real Time"] = pd.to_datetime(df["Real Time"])
+        real_time = pd.to_datetime(df["Real Time"])
+        df["Real Time"] = real_time
         
         # Change this section to use the proper date format
-        df["Date"] = df["Real Time"].dt.strftime("%m/%d/%Y")  # M/D/YYYY format (7/25/2025)
-        df["Time"] = df["Real Time"].dt.strftime("%H:%M:%S")  # 24-hour format (14:12:00)
+        df["Date"] = real_time.dt.strftime("%m/%d/%Y")  # M/D/YYYY format (7/25/2025)
+        df["Time"] = real_time.dt.strftime("%H:%M:%S")  # 24-hour format (14:12:00)
         
         # Sort by time to ensure chronological order
         df = df.sort_values("Real Time")
