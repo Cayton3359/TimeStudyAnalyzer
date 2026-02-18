@@ -9,7 +9,7 @@ import threading
 from typing import Any
 from PyQt5.QtCore import QThread, pyqtSignal
 
-DEFAULT_VERSION = "v1.0.0-fast"
+DEFAULT_VERSION = "v1.0.0"
 DEFAULT_RESOLUTION = "360p"
 DEFAULT_ROOT_FOLDER = r"D:\record"
 DEFAULT_OUTPUT_EXCEL = r"M:\Engineering\Lindsey\12. Code\Time Study Camera\TimeStudyAnalyzer\output\card_events_summary.xlsx"
